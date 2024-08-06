@@ -6,6 +6,10 @@ const nextConfig = {
         protocol: "https",
         hostname: "wellmark.netlify.app",
       },
+      {
+        protocol: "https",
+        hostname: "firebasestorage.googleapis.com",
+      },
     ],
   },
 };

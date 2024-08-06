@@ -26,6 +26,7 @@ const AddButton = ({ type, category }) => {
     description: "",
     image: null,
   });
+  const [gernerateIdCheckbox, setGenerateIdCheckbox] = useState(false);
 
   const addHandler = (e) => {
     e.preventDefault();
@@ -101,6 +102,7 @@ const AddButton = ({ type, category }) => {
                 onChange={(e) =>
                   setFormData({ ...formData, id: e.target.value })
                 }
+                disabled={gernerateIdCheckbox}
               />
             </div>
             <div>
@@ -109,9 +111,20 @@ const AddButton = ({ type, category }) => {
                 id="title"
                 placeholder="Enter Title"
                 value={formData.title}
-                onChange={(e) =>
-                  setFormData({ ...formData, title: e.target.value })
-                }
+                onChange={(e) => {
+                  if (gernerateIdCheckbox) {
+                    setFormData({
+                      ...formData,
+                      title: e.target.value,
+                      id: e.target.value
+                        .trim()
+                        .toLowerCase()
+                        .replace(/\s/g, "-"),
+                    });
+                  } else {
+                    setFormData({ ...formData, title: e.target.value });
+                  }
+                }}
               />
             </div>
             <div>
@@ -134,6 +147,16 @@ const AddButton = ({ type, category }) => {
                 onChange={(e) =>
                   setFormData({ ...formData, image: e.target.files[0] })
                 }
+              />
+            </div>
+            <div className="flex items-center gap-3 justify-end">
+              {/* <Input id="generateId" type="checkbox" /> */}
+              <Label htmlFor="generateId">Generate ID</Label>
+              <input
+                type="checkbox"
+                id="generateId"
+                value={gernerateIdCheckbox}
+                onChange={(e) => setGenerateIdCheckbox(e.target.checked)}
               />
             </div>
           </div>
