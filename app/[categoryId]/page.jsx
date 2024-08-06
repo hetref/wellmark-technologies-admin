@@ -38,7 +38,7 @@ const CategoryPage = () => {
 
       <div>
         <h2>Products</h2>
-        {data?.prod.map((product, index) => (
+        {data?.prod?.map((product, index) => (
           <div key={index}>
             <Link href={`/${categoryId}/${product.id}`}>{product.title}</Link>
           </div>

@@ -11,7 +11,7 @@ export default function Home() {
       <div className="max-w-7xl w-full">
         <div className="flex justify-between items-center">
           <h2>Categories:</h2>
-          <AddButton type="category" />
+          <AddButton type="category" action="Add" />
         </div>
         <div className="border-4 border-[#5eb1af] rounded-xl px-4 py-6 mt-6">
           <LoadCategories />

@@ -1,6 +1,6 @@
 "use client";
 
-import { PlusCircle } from "lucide-react";
+import { Pencil, PlusCircle } from "lucide-react";
 import {
   Dialog,
   DialogClose,
@@ -14,12 +14,17 @@ import {
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { Label } from "./ui/label";
-import { useState } from "react";
-import { ref, uploadBytes } from "firebase/storage";
+import { useEffect, useState } from "react";
+import {
+  getDownloadURL,
+  ref as storageRef,
+  uploadBytes,
+} from "firebase/storage";
 import { db, storage } from "@/firebase/config";
-import { set } from "firebase/database";
+import { set, ref as databaseRef, update, get } from "firebase/database";
+import { revalidatePath } from "next/cache";
 
-const AddButton = ({ type, category }) => {
+const AddButton = ({ type, categoryId, action }) => {
   const [formData, setFormData] = useState({
     id: "",
     title: "",
@@ -27,48 +32,68 @@ const AddButton = ({ type, category }) => {
     image: null,
   });
 
-  const addHandler = (e) => {
+  useEffect(() => {
+    if (action === "Update" && categoryId) {
+      const fetchData = async () => {
+        const categoryRef = databaseRef(db, `products/${categoryId}`);
+        const snapshot = await get(categoryRef);
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+          setFormData({
+            id: data.id,
+            title: data.title,
+            description: data.description,
+            image: null, // You might want to handle the image differently here
+          });
+        }
+      };
+      fetchData();
+    }
+  }, [action, categoryId]);
+
+  const addHandler = async (e) => {
     e.preventDefault();
     console.log(formData);
-    // Handle your form submission logic here
-    let storageRef;
-
+    if (
+      formData.id === "" ||
+      formData.title === "" ||
+      formData.description === ""
+    ) {
+      return;
+    }
+    let storageReference;
     if (type === "category") {
-      storageRef = ref(storage, `categories/${formData.id}`);
-      // add the formData to the products/ in the firebase realtime database where I want to first upload the image to the storage and then add the link as the image in the database
+      storageReference = storageRef(storage, `categories/${formData.id}`);
     } else {
-      storageRef = ref(storage, `products/${formData.id}`);
+      storageReference = storageRef(storage, `products/${formData.id}`);
     }
 
-    // 'file' comes from the Blob or File API
-    uploadBytes(storageRef, formData.image).then((snapshot) => {
-      console.log("Uploaded a blob or file!");
-      // get file downloadable url and add data to firebase
-      getDownloadURL(
-        ref(
-          storage,
-          type === "category"
-            ? `categories/${formData.id}`
-            : `products/${formData.id}`
-        )
-      )
-        .then((url) => {
-          console.log("File available at", url);
+    try {
+      if (formData.image) {
+        await uploadBytes(storageReference, formData.image);
+        const url = await getDownloadURL(storageReference);
+        console.log("File available at", url);
 
-          if (type === "category") {
-            set(ref(db, `products/${formData.id}`), {
-              id: formData.id,
-              title: formData.title,
-              description: formData.description,
-              image: url,
-            });
-          }
-        })
-        .catch((error) => {
-          console.log("ERROR GETTING DOWNLOAD URL", error);
-          // Handle any errors
-        });
-    });
+        const dataToSet = {
+          id: formData.id,
+          title: formData.title,
+          description: formData.description,
+          image: url,
+        };
+
+        await set(databaseRef(db, `products/${formData.id}`), dataToSet);
+      } else {
+        const dataToSet = {
+          id: formData.id,
+          title: formData.title,
+          description: formData.description,
+        };
+
+        await set(databaseRef(db, `products/${formData.id}`), dataToSet);
+      }
+    } catch (error) {
+      console.error("Error updating data:", error);
+    }
 
     setFormData({
       id: "",
@@ -78,17 +103,65 @@ const AddButton = ({ type, category }) => {
     });
   };
 
+  const updateHandler = async (e) => {
+    e.preventDefault();
+    console.log(formData);
+
+    let storageReference;
+    if (type === "category") {
+      storageReference = storageRef(storage, `categories/${formData.id}`);
+    } else {
+      storageReference = storageRef(storage, `products/${formData.id}`);
+    }
+
+    try {
+      const updates = {
+        id: formData.id,
+        title: formData.title,
+        description: formData.description,
+      };
+
+      if (formData.image) {
+        await uploadBytes(storageReference, formData.image);
+        const url = await getDownloadURL(storageReference);
+        updates.image = url;
+      }
+
+      await update(databaseRef(db, `products/${categoryId}`), updates);
+    } catch (error) {
+      console.error("Error updating data:", error);
+    }
+
+    setFormData({
+      id: "",
+      title: "",
+      description: "",
+      image: null,
+    });
+
+    revalidatePath("/");
+  };
+
   return (
     <Dialog>
-      <DialogTrigger className="text-lg font-semibold flex justify-center items-center px-4 py-2 gap-2 border-2 border-[#5eb1af] rounded hover:bg-[rgba(94,177,176,0.7)] transition-all duration-200">
-        Add <PlusCircle />
-      </DialogTrigger>
+      {action === "Add" ? (
+        <DialogTrigger className="text-lg font-semibold flex justify-center items-center px-4 py-2 gap-2 border-2 border-[#5eb1af] rounded hover:bg-[rgba(94,177,176,0.7)] transition-all duration-200">
+          Add <PlusCircle />
+        </DialogTrigger>
+      ) : (
+        <DialogTrigger className="absolute top-2 right-2 bg-white p-2 rounded-full">
+          <Pencil className="w-full" />
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
-            Add {type === "category" ? "Category" : "Product"}
+            {action === "Add" ? "Add" : "Edit"}{" "}
+            {type === "category" ? "Category" : "Product"}
           </DialogTitle>
-          <DialogDescription>Add {type} in your database.</DialogDescription>
+          <DialogDescription>
+            {action === "Add" ? "Add" : "Edit"} {type} in your database.
+          </DialogDescription>
         </DialogHeader>
         <div className="flex items-center space-x-2">
           <div className="grid flex-1 gap-2">
@@ -144,8 +217,11 @@ const AddButton = ({ type, category }) => {
               Close
             </Button>
           </DialogClose>
-          <Button className="bg-green-800" onClick={addHandler}>
-            Add
+          <Button
+            className="bg-green-800"
+            onClick={action === "Add" ? addHandler : updateHandler}
+          >
+            {action === "Add" ? "Add" : "Update"}{" "}
           </Button>
         </DialogFooter>
       </DialogContent>
