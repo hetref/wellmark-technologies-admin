@@ -9,16 +9,12 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import AddButton from "./AddButton";
+import DeleteButton from "./DeleteButton";
 
 const LoadCategories = () => {
   const [data, setData] = useState(null); // Initialize as null to handle loading state
   const [loading, setLoading] = useState(true); // Loading state to manage UI before data is loaded
   const [error, setError] = useState(null); // Error state for error handling
-
-  const editHandler = () => {
-    console.log("clicked");
-    <AddButton type="category" action="Update" />;
-  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -52,6 +48,7 @@ const LoadCategories = () => {
                 action="Update"
                 categoryId={data[category].id}
               />
+              <DeleteButton type="category" categoryId={data[category].id} />
               {/* </button> */}
               <Link href={`/${data[category].id}`}>
                 <Image

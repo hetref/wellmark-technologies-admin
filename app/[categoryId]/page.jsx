@@ -1,7 +1,10 @@
 "use client";
 
+import AddButton from "@/components/AddButton";
+import DeleteButton from "@/components/DeleteButton";
 import { db } from "@/firebase/config";
 import { onValue, ref } from "firebase/database";
+import { Delete, Pencil } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import React, { useEffect, useState } from "react";
@@ -38,11 +41,31 @@ const CategoryPage = () => {
 
       <div>
         <h2>Products</h2>
-        {data?.prod?.map((product, index) => (
-          <div key={index}>
-            <Link href={`/${categoryId}/${product.id}`}>{product.title}</Link>
-          </div>
-        ))}
+        <div className="flex flex-col gap-4 relative">
+          {data?.prod?.map((product, index) => (
+            <ul
+              key={index}
+              className=" bg-gray-200 border-2 border-gray-400 rounded-lg px-2 py-3 relative"
+            >
+              <Link href={`/${categoryId}/${product.id}`}>
+                <li>{product.title}</li>
+              </Link>
+              <AddButton
+                type="product"
+                action="Update"
+                categoryId={categoryId}
+                productId={product.id}
+              />
+              <DeleteButton
+                type="product"
+                categoryId={categoryId}
+                productId={product.id}
+              />
+            </ul>
+          ))}
+
+          <AddButton type="product" action="Add" categoryId={categoryId} />
+        </div>
       </div>
     </div>
   );

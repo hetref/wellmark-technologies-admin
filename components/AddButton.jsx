@@ -22,39 +22,60 @@ import {
 } from "firebase/storage";
 import { db, storage } from "@/firebase/config";
 import { set, ref as databaseRef, update, get } from "firebase/database";
-import { revalidatePath } from "next/cache";
+import toast from "react-hot-toast";
 
-const AddButton = ({ type, categoryId, action }) => {
+const AddButton = ({ type, categoryId, action, productId }) => {
   const [formData, setFormData] = useState({
     id: "",
     title: "",
     description: "",
     image: null,
   });
-  const [gernerateIdCheckbox, setGenerateIdCheckbox] = useState(false);
+  const [generateIdCheckbox, setGenerateIdCheckbox] = useState(false);
 
   useEffect(() => {
-    if (action === "Update" && categoryId) {
-      const fetchData = async () => {
-        const categoryRef = databaseRef(db, `products/${categoryId}`);
-        const snapshot = await get(categoryRef);
+    const fetchData = async () => {
+      if (action === "Update" && categoryId) {
+        let dataRef;
+
+        if (type === "category") {
+          dataRef = databaseRef(db, `categories/${categoryId}`);
+        } else {
+          dataRef = databaseRef(db, `products/${categoryId}`);
+        }
+
+        const snapshot = await get(dataRef);
         if (snapshot.exists()) {
           const data = snapshot.val();
-          setFormData({
-            id: data.id,
-            title: data.title,
-            description: data.description,
-            image: null, // You might want to handle the image differently here
-          });
+          if (type === "category") {
+            setFormData({
+              id: data.id,
+              title: data.title,
+              description: data.description,
+              image: null,
+            });
+          } else {
+            const product = data.prod
+              ? data.prod.find((prod) => prod.id === productId)
+              : null;
+            if (product) {
+              setFormData({
+                id: product.id,
+                title: product.title,
+                description: product.description,
+                image: null,
+              });
+            }
+          }
         }
-      };
-      fetchData();
-    }
-  }, [action, categoryId]);
+      }
+    };
+
+    fetchData();
+  }, [action, categoryId, type]);
 
   const addHandler = async (e) => {
     e.preventDefault();
-    console.log(formData);
     if (
       formData.id === "" ||
       formData.title === "" ||
@@ -62,6 +83,7 @@ const AddButton = ({ type, categoryId, action }) => {
     ) {
       return;
     }
+
     let storageReference;
     if (type === "category") {
       storageReference = storageRef(storage, `categories/${formData.id}`);
@@ -70,30 +92,36 @@ const AddButton = ({ type, categoryId, action }) => {
     }
 
     try {
+      let dataToSet = {
+        id: formData.id,
+        title: formData.title,
+        description: formData.description,
+      };
+
       if (formData.image) {
         await uploadBytes(storageReference, formData.image);
         const url = await getDownloadURL(storageReference);
-        console.log("File available at", url);
+        dataToSet.image = url;
+      }
 
-        const dataToSet = {
-          id: formData.id,
-          title: formData.title,
-          description: formData.description,
-          image: url,
-        };
-
-        await set(databaseRef(db, `products/${formData.id}`), dataToSet);
+      if (type === "category") {
+        await set(databaseRef(db, `categories/${formData.id}`), dataToSet);
+        toast.success("Category added successfully");
       } else {
-        const dataToSet = {
-          id: formData.id,
-          title: formData.title,
-          description: formData.description,
-        };
+        const categoryRef = databaseRef(db, `products/${categoryId}`);
+        const snapshot = await get(categoryRef);
+        let existingProducts = [];
+        if (snapshot.exists()) {
+          const categoryData = snapshot.val();
+          existingProducts = categoryData.prod ? categoryData.prod : [];
+        }
+        existingProducts.push(dataToSet);
 
-        await set(databaseRef(db, `products/${formData.id}`), dataToSet);
+        await update(categoryRef, { prod: existingProducts });
+        toast.success("Product added successfully");
       }
     } catch (error) {
-      console.error("Error updating data:", error);
+      console.error("Error adding data:", error);
     }
 
     setFormData({
@@ -106,7 +134,14 @@ const AddButton = ({ type, categoryId, action }) => {
 
   const updateHandler = async (e) => {
     e.preventDefault();
-    console.log(formData);
+    if (
+      formData.id === "" ||
+      formData.title === "" ||
+      formData.description === ""
+    ) {
+      toast.error("Please fill in all fields");
+      return;
+    }
 
     let storageReference;
     if (type === "category") {
@@ -126,11 +161,59 @@ const AddButton = ({ type, categoryId, action }) => {
         await uploadBytes(storageReference, formData.image);
         const url = await getDownloadURL(storageReference);
         updates.image = url;
+      } else {
+        if (type === "category") {
+          const existingCategoryRef = databaseRef(
+            db,
+            `categories/${formData.id}`
+          );
+          const snapshot = await get(existingCategoryRef);
+          if (snapshot.exists()) {
+            const existingCategoryData = snapshot.val();
+            if (existingCategoryData.image) {
+              updates.image = existingCategoryData.image;
+            }
+          }
+        } else {
+          const categoryRef = databaseRef(db, `products/${categoryId}`);
+          const snapshot = await get(categoryRef);
+          if (snapshot.exists()) {
+            const categoryData = snapshot.val();
+            const existingProduct = categoryData.prod
+              ? categoryData.prod.find((prod) => prod.id === formData.id)
+              : null;
+            if (existingProduct && existingProduct.image) {
+              updates.image = existingProduct.image;
+            }
+          }
+        }
       }
 
-      await update(databaseRef(db, `products/${categoryId}`), updates);
+      if (type === "category") {
+        await update(databaseRef(db, `categories/${formData.id}`), updates);
+        toast.success("Category updated successfully");
+      } else {
+        const categoryRef = databaseRef(db, `products/${categoryId}`);
+        const snapshot = await get(categoryRef);
+        let existingProducts = [];
+        if (snapshot.exists()) {
+          const categoryData = snapshot.val();
+          existingProducts = categoryData.prod ? categoryData.prod : [];
+        }
+        const index = existingProducts.findIndex(
+          (product) => product.id === formData.id
+        );
+        if (index !== -1) {
+          existingProducts[index] = updates;
+          await update(categoryRef, { prod: existingProducts });
+          toast.success("Product updated successfully");
+        } else {
+          toast.error("Product not found");
+        }
+      }
     } catch (error) {
       console.error("Error updating data:", error);
+      toast.error("Error updating data");
     }
 
     setFormData({
@@ -139,8 +222,6 @@ const AddButton = ({ type, categoryId, action }) => {
       description: "",
       image: null,
     });
-
-    revalidatePath("/");
   };
 
   return (
@@ -150,8 +231,14 @@ const AddButton = ({ type, categoryId, action }) => {
           Add <PlusCircle />
         </DialogTrigger>
       ) : (
-        <DialogTrigger className="absolute top-2 right-2 bg-white p-2 rounded-full">
-          <Pencil className="w-full" />
+        <DialogTrigger
+          className={
+            type === "product" && action === "Update"
+              ? `absolute top-1 right-2 bg-white p-2 rounded-full`
+              : `absolute top-2 right-2 bg-white p-2 rounded-full`
+          }
+        >
+          <Pencil className="" />
         </DialogTrigger>
       )}
       <DialogContent className="sm:max-w-md">
@@ -175,7 +262,7 @@ const AddButton = ({ type, categoryId, action }) => {
                 onChange={(e) =>
                   setFormData({ ...formData, id: e.target.value })
                 }
-                disabled={gernerateIdCheckbox}
+                disabled={generateIdCheckbox}
               />
             </div>
             <div>
@@ -185,7 +272,7 @@ const AddButton = ({ type, categoryId, action }) => {
                 placeholder="Enter Title"
                 value={formData.title}
                 onChange={(e) => {
-                  if (gernerateIdCheckbox) {
+                  if (generateIdCheckbox) {
                     setFormData({
                       ...formData,
                       title: e.target.value,
@@ -223,12 +310,11 @@ const AddButton = ({ type, categoryId, action }) => {
               />
             </div>
             <div className="flex items-center gap-3 justify-end">
-              {/* <Input id="generateId" type="checkbox" /> */}
               <Label htmlFor="generateId">Generate ID</Label>
               <input
                 type="checkbox"
                 id="generateId"
-                value={gernerateIdCheckbox}
+                checked={generateIdCheckbox}
                 onChange={(e) => setGenerateIdCheckbox(e.target.checked)}
               />
             </div>
@@ -244,7 +330,7 @@ const AddButton = ({ type, categoryId, action }) => {
             className="bg-green-800"
             onClick={action === "Add" ? addHandler : updateHandler}
           >
-            {action === "Add" ? "Add" : "Update"}{" "}
+            {action === "Add" ? "Add" : "Update"}
           </Button>
         </DialogFooter>
       </DialogContent>
