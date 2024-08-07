@@ -12,7 +12,7 @@ export async function POST(request) {
     const { data, error } = await resend.emails.send({
       from: "Wellmark Technologies <contact@wellmark.co.in>",
       to: ["accounts@wellmark.co.in", "shindearyan179@gmail.com"],
-      subject: "New Contact Email",
+      subject: "New Contact Enquiry",
       react: ContactEmail({ name, email, phone, subject, message }),
     });
 
