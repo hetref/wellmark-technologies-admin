@@ -1,5 +1,4 @@
 import { ContactEmail } from "@/components/emails/ContactEmail";
-import { NextResponse } from "next/server";
 import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -7,8 +6,6 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 export async function POST(request) {
   try {
     const { name, email, phone, subject, message } = await request.json();
-
-    console.log(name, email, phone, subject, message);
 
     const { data, error } = await resend.emails.send({
       from: "Wellmark Technologies <contact@wellmark.co.in>",
@@ -19,17 +16,13 @@ export async function POST(request) {
 
     if (error) {
       return new Response(JSON.stringify({ error }), { status: 500 });
-      // use NextResponse
-      // return new NextResponse({ status: 500 });
     }
 
     return new Response(JSON.stringify(data), { status: 200 });
-    // return new NextResponse({ status: 200 });
   } catch (error) {
     console.error(error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
     });
-    // return new NextResponse({ status: 500 });
   }
 }
