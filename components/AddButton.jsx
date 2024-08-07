@@ -14,7 +14,7 @@ import {
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { Label } from "./ui/label";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   getDownloadURL,
   ref as storageRef,
@@ -32,17 +32,14 @@ const AddButton = ({ type, categoryId, action, productId }) => {
     image: null,
   });
   const [generateIdCheckbox, setGenerateIdCheckbox] = useState(false);
+  const closeDialogRef = useRef(null); // Create a ref for DialogClose
 
   useEffect(() => {
     const fetchData = async () => {
       if (action === "Update" && categoryId) {
         let dataRef;
 
-        if (type === "category") {
-          dataRef = databaseRef(db, `categories/${categoryId}`);
-        } else {
-          dataRef = databaseRef(db, `products/${categoryId}`);
-        }
+        dataRef = databaseRef(db, `products/${categoryId}`);
 
         const snapshot = await get(dataRef);
         if (snapshot.exists()) {
@@ -105,8 +102,12 @@ const AddButton = ({ type, categoryId, action, productId }) => {
       }
 
       if (type === "category") {
-        await set(databaseRef(db, `categories/${formData.id}`), dataToSet);
-        toast.success("Category added successfully");
+        await set(databaseRef(db, `products/${formData.id}`), dataToSet).then(
+          () => {
+            toast.success("Category added successfully");
+            closeDialogRef.current.click(); // Programmatically close the dialog
+          }
+        );
       } else {
         const categoryRef = databaseRef(db, `products/${categoryId}`);
         const snapshot = await get(categoryRef);
@@ -119,6 +120,7 @@ const AddButton = ({ type, categoryId, action, productId }) => {
 
         await update(categoryRef, { prod: existingProducts });
         toast.success("Product added successfully");
+        closeDialogRef.current.click(); // Programmatically close the dialog
       }
     } catch (error) {
       console.error("Error adding data:", error);
@@ -165,7 +167,7 @@ const AddButton = ({ type, categoryId, action, productId }) => {
         if (type === "category") {
           const existingCategoryRef = databaseRef(
             db,
-            `categories/${formData.id}`
+            `products/${formData.id}`
           );
           const snapshot = await get(existingCategoryRef);
           if (snapshot.exists()) {
@@ -190,7 +192,7 @@ const AddButton = ({ type, categoryId, action, productId }) => {
       }
 
       if (type === "category") {
-        await update(databaseRef(db, `categories/${formData.id}`), updates);
+        await update(databaseRef(db, `products/${formData.id}`), updates);
         toast.success("Category updated successfully");
       } else {
         const categoryRef = databaseRef(db, `products/${categoryId}`);
@@ -208,9 +210,11 @@ const AddButton = ({ type, categoryId, action, productId }) => {
           await update(categoryRef, { prod: existingProducts });
           toast.success("Product updated successfully");
         } else {
-          toast.error("Product not found");
+          toast.error("Error updating product");
         }
       }
+
+      closeDialogRef.current.click(); // Programmatically close the dialog
     } catch (error) {
       console.error("Error updating data:", error);
       toast.error("Error updating data");
@@ -262,7 +266,7 @@ const AddButton = ({ type, categoryId, action, productId }) => {
                 onChange={(e) =>
                   setFormData({ ...formData, id: e.target.value })
                 }
-                disabled={generateIdCheckbox}
+                disabled={generateIdCheckbox || action === "Update"}
               />
             </div>
             <div>
@@ -322,7 +326,7 @@ const AddButton = ({ type, categoryId, action, productId }) => {
         </div>
         <DialogFooter className="sm:justify-start">
           <DialogClose asChild>
-            <Button type="button" variant="secondary">
+            <Button type="button" variant="secondary" ref={closeDialogRef}>
               Close
             </Button>
           </DialogClose>

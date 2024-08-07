@@ -34,37 +34,54 @@ const CategoryPage = () => {
   if (!data) return <div>No data found</div>;
 
   return (
-    <div>
-      <img src={data?.image} alt={data?.title} />
-      <h1>Category - {data?.title}</h1>
-      <p>{data?.description}</p>
+    <div className="container mx-auto h-full ">
+      <div className="grid md:grid-cols-2 gap-10 border-4 border-[#5eb1af] p-8 rounded-2xl relative">
+        <div className="flex flex-col gap-6">
+          <div className="bg-gray-100 rounded-2xl max-h-96 md:h-96 border md: max-w-[100%]">
+            <img
+              src={data?.image}
+              alt={data?.title}
+              className="rounded-2xl md:w-full md:h-full text-center text-3xl   font-bold"
+            />
+          </div>
+          <h1 className="text-4xl font-bold text-gray-800">
+            {" "}
+            Category - {data?.title}
+          </h1>
+          <p>{data?.description}</p>
+        </div>
 
-      <div>
-        <h2>Products</h2>
-        <div className="flex flex-col gap-4 relative">
-          {data?.prod?.map((product, index) => (
-            <ul
-              key={index}
-              className=" bg-gray-200 border-2 border-gray-400 rounded-lg px-2 py-3 relative"
-            >
-              <Link href={`/${categoryId}/${product.id}`}>
-                <li>{product.title}</li>
-              </Link>
-              <AddButton
-                type="product"
-                action="Update"
-                categoryId={categoryId}
-                productId={product.id}
-              />
-              <DeleteButton
-                type="product"
-                categoryId={categoryId}
-                productId={product.id}
-              />
-            </ul>
-          ))}
+        <div className="flex flex-col gap-4">
+          <div className="flex justify-between">
+            <h2>Products</h2>
+            <AddButton type="product" action="Add" categoryId={categoryId} />
+          </div>
 
-          <AddButton type="product" action="Add" categoryId={categoryId} />
+          <p hidden={data?.prod?.length > 0}>No products found</p>
+
+          <div className="flex flex-col gap-4 relative">
+            {data?.prod?.map((product, index) => (
+              <ul
+                key={index}
+                className=" bg-gray-200  border  border-[#5eb1af] rounded-lg px-2 py-3 relative"
+              >
+                <Link href={`/${categoryId}/${product.id}`}>
+                  <li>{product.title}</li>
+                </Link>
+                <AddButton
+                  type="product"
+                  action="Update"
+                  categoryId={categoryId}
+                  productId={product.id}
+                />
+                <DeleteButton
+                  type="product"
+                  categoryId={categoryId}
+                  productId={product.id}
+                />
+              </ul>
+            ))}
+          </div>
         </div>
       </div>
     </div>

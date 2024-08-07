@@ -14,12 +14,31 @@ import { Button } from "./ui/button";
 import { ref, remove, get, update } from "firebase/database";
 import { db } from "@/firebase/config";
 import toast from "react-hot-toast";
-
+import { storage } from "@/firebase/config";
+// import second from 'first'
+import { deleteObject, ref as storageRef } from "firebase/storage";
+import { useRouter } from "next/navigation";
 const DeleteButton = ({ type, categoryId, productId }) => {
+  const router = useRouter();
   const deleteHandler = async () => {
     try {
+      let storageReference;
       if (type === "category") {
-        await remove(ref(db, `categories/${categoryId}`));
+        storageReference = storageRef(storage, `categories/${categoryId}`);
+        console.log("storageReference", storageReference);
+      } else {
+        storageReference = storageRef(storage, `products/${productId}`);
+      }
+      await deleteObject(storageReference)
+        .then(() => {
+          console.log("File deleted successfully");
+        })
+        .catch((error) => {
+          // Uh-oh, an error occurred!
+          console.log("Error deleting file:", error);
+        });
+      if (type === "category") {
+        await remove(ref(db, `products/${categoryId}`));
         toast.success("Category deleted successfully");
       } else {
         const categoryRef = ref(db, `products/${categoryId}`);
@@ -31,13 +50,10 @@ const DeleteButton = ({ type, categoryId, productId }) => {
             (prod) => prod.id !== productId
           );
 
-          if (updatedProducts.length > 0) {
-            await update(categoryRef, { prod: updatedProducts });
-          } else {
-            await remove(categoryRef);
-          }
+          await update(categoryRef, { prod: updatedProducts });
 
           toast.success("Product deleted successfully");
+          router.push(`/${categoryId}`);
         } else {
           toast.error("Product not found");
         }
@@ -54,7 +70,7 @@ const DeleteButton = ({ type, categoryId, productId }) => {
         className={
           type === "product"
             ? "absolute top-1 right-16 bg-red-600 text-white p-2 rounded-full"
-            : "absolute top-2 right-2 bg-red-600 text-white p-2 rounded-full"
+            : "absolute top-2 left-2 bg-red-600 text-white p-2 rounded-full"
         }
       >
         <Trash className="w-6 h-6" />
