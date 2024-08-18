@@ -44,16 +44,18 @@ const CategoryPage = () => {
               className="rounded-2xl md:w-full md:h-full text-center text-3xl   font-bold"
             />
           </div>
-          <h1 className="text-4xl font-bold text-gray-800">
+          <h1 className=" font-bold text-gray-800 text-2xl md:text-4xl">
             {" "}
             Category - {data?.title}
           </h1>
-          <p>{data?.description}</p>
+          <p className="text-gray-600">{data?.description}</p>
         </div>
 
         <div className="flex flex-col gap-4">
           <div className="flex justify-between">
-            <h2>Products</h2>
+            <h2 className="text-2xl flex items-center md:text-4xl font-bold">
+              Products
+            </h2>
             <AddButton type="product" action="Add" categoryId={categoryId} />
           </div>
 

@@ -69,11 +69,11 @@ const ProductPage = () => {
   const router = useRouter();
   return (
     <div className="container mx-auto h-full ">
-      <div className="grid md:grid-cols-2 grid-cols-1 gap-10 bg-[#5eb1af] p-8 rounded-2xl border-4 border-blue-950  relative">
+      <div className="grid md:grid-cols-2 grid-cols-1 gap-10 bg-white p-8 rounded-2xl border-4 border-blue-950  relative ">
         <img
           src={data.image}
           alt={data.title}
-          className="rounded-2xl object-cover"
+          className="rounded-2xl object-cover mt-10 md:mt-0"
         />
         <div className="flex flex-col gap-6 ">
           <h1 className="text-4xl font-bold text-gray-800">{data.title}</h1>
