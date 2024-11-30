@@ -1,35 +1,55 @@
 import { ContactEmail } from "@/components/emails/ContactEmail";
-import { NextResponse } from "next/server";
 import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-export async function POST(request) {
+export async function POST(req) {
   try {
-    const { name, email, phone, subject, message } = await request.json();
+    const { name, email, phone, subject, message } = await req.json();
 
-    console.log(name, email, phone, subject, message);
+    console.log("Received Data:", { name, email, phone, subject, message });
 
     const { data, error } = await resend.emails.send({
-      from: "Wellmark Technologies <contact@wellmark.co.in>",
-      to: ["accounts@wellmark.co.in", "shindearyan179@gmail.com"],
+      from: "Wellmark Technologies <info@wellmark.co.in>",
+      to: ["info@wellmark.co.in"],
       subject: "New Contact Enquiry",
       react: ContactEmail({ name, email, phone, subject, message }),
     });
 
     if (error) {
-      return new Response(JSON.stringify({ error }), { status: 500 });
-      // use NextResponse
-      // return new NextResponse({ status: 500 });
+      console.error("Email Sending Error:", error);
+      return new Response(JSON.stringify({ error }), {
+        status: 500,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+        },
+      });
     }
 
-    return new Response(JSON.stringify(data), { status: 200 });
-    // return new NextResponse({ status: 200 });
+    return new Response(JSON.stringify(data), {
+      status: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+      },
+    });
   } catch (error) {
-    console.error(error);
+    console.error("Error in POST handler:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+      },
     });
-    // return new NextResponse({ status: 500 });
   }
+}
+
+export async function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    },
+  });
 }
