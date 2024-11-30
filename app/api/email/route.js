@@ -4,9 +4,12 @@ import { Resend } from "resend";
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(req) {
+export async function POST(req) {
   try {
     const { name, email, phone, subject, message } = await req.json();
+    const { name, email, phone, subject, message } = await req.json();
 
+    console.log("Received Data:", { name, email, phone, subject, message });
     console.log("Received Data:", { name, email, phone, subject, message });
 
     const { data, error } = await resend.emails.send({
@@ -24,6 +27,13 @@ export async function POST(req) {
           "Access-Control-Allow-Origin": "*",
         },
       });
+      console.error("Email Sending Error:", error);
+      return new Response(JSON.stringify({ error }), {
+        status: 500,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+        },
+      });
     }
 
     return new Response(JSON.stringify(data), {
@@ -32,10 +42,33 @@ export async function POST(req) {
         "Access-Control-Allow-Origin": "*",
       },
     });
+    return new Response(JSON.stringify(data), {
+      status: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+      },
+    });
   } catch (error) {
+    console.error("Error in POST handler:", error);
     console.error("Error in POST handler:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+      },
+    });
+  }
+}
+
+export async function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    },
+  });
       headers: {
         "Access-Control-Allow-Origin": "*",
       },
